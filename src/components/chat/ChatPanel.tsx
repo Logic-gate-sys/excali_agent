@@ -16,7 +16,7 @@ export default function ChatPanel({
 }: ChatPanelProps) {
   const [input, setInput] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
     sendMessage({

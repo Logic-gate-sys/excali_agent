@@ -27,15 +27,10 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
           if (part.type?.startsWith("tool-")) {
             const toolName = part.type.replace("tool-", "");
             const toolPart = part as { state?: string };
-            const status =
-              toolPart.state === "output-available"
-                ? "complete"
-                : toolPart.state === "output-error"
-                  ? "error"
-                  : "running";
+            const status = toolPart.state === "output-available"? "complete" : toolPart.state === "output-error"
+                  ? "error" : "running";
             return <ToolStatus key={i} name={toolName} status={status} />;
           }
-
           return null;
         })}
       </div>

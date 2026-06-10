@@ -35,8 +35,8 @@ export class DesignAgent extends AIChatAgent<Env> {
       model: google("gemini-3.5-flash"),
       system: SYSTEM_PROMPT,
       messages: await convertToModelMessages(this.messages),
-      tools,
-      stopWhen: stepCountIs(5),
+      tools,// available tools to agent
+      stopWhen: stepCountIs(5),// do a maximum of 5 loops only
     });
 
     return result.toUIMessageStreamResponse();

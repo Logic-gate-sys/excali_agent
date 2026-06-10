@@ -1,10 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import {
-  convertToExcalidrawElements,
-  CaptureUpdateAction,
-  newElementWith,
-} from "@excalidraw/excalidraw";
+import {convertToExcalidrawElements,CaptureUpdateAction,newElementWith} from "@excalidraw/excalidraw";
 import { useAgent } from "agents/react";
 import { useAgentChat } from "@cloudflare/ai-chat/react";
 import Canvas from "./components/Canvas";
@@ -14,8 +10,7 @@ import "./App.css";
 const sessionId = crypto.randomUUID();
 
 export default function App() {
-  const [excalidrawAPI, setExcalidrawAPI] =
-    useState<ExcalidrawImperativeAPI | null>(null);
+  const [excalidrawAPI, setExcalidrawAPI] = useState<ExcalidrawImperativeAPI | null>(null);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const appliedToolCalls = useRef<Set<string>>(new Set());
 
@@ -33,10 +28,7 @@ export default function App() {
     for (const message of messages) {
       if (message.role !== "assistant") continue;
       for (const part of message.parts ?? []) {
-        if (
-          part.type !== "tool-generateDiagram" &&
-          part.type !== "tool-modifyDiagram"
-        ) {
+        if (part.type !== "tool-generateDiagram" && part.type !== "tool-modifyDiagram") {
           continue;
         }
         if (part.state !== "output-available") continue;
@@ -47,13 +39,15 @@ export default function App() {
           const output = part.output as { elements?: unknown };
           const skeletonElements = output?.elements;
           if (Array.isArray(skeletonElements) && skeletonElements.length > 0) {
+            // a help to convert skeleton to exalidraw acceptable format 
             const elements = convertToExcalidrawElements(
               skeletonElements as any,
-              { regenerateIds: false }
+              { regenerateIds: false } // prevent default excalidraw id generation 
             );
             excalidrawAPI.updateScene({ elements });
             excalidrawAPI.scrollToContent(elements, { fitToContent: true });
           }
+
         } else if (part.type === "tool-modifyDiagram") {
           appliedToolCalls.current.add(part.toolCallId);
           const output = part.output as {
@@ -63,9 +57,7 @@ export default function App() {
           if (output?.elementId && output.updates) {
             const current = excalidrawAPI.getSceneElements();
             const next = current.map((el) =>
-              el.id === output.elementId
-                ? newElementWith(el, output.updates as never)
-                : el
+              el.id === output.elementId? newElementWith(el, output.updates as never) : el
             );
             excalidrawAPI.updateScene({
               elements: next,
@@ -82,11 +74,7 @@ export default function App() {
       <div className="canvas-container">
         <Canvas onApiReady={handleApiReady} onThemeChange={setTheme} />
       </div>
-      <ChatPanel
-        messages={messages}
-        sendMessage={sendMessage}
-        status={status}
-      />
+      <ChatPanel messages={messages} sendMessage={sendMessage} status={status} />
     </div>
   );
 }
