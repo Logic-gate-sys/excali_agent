@@ -21,7 +21,6 @@ export function buildMessages(tc: GoldenTestCase): ModelMessage[] {
   if (!tc.seed) {
     return [{ role: "user", content: tc.input }];
   }
-
   const callId = `seed_${tc.id}`;
   return [
     { role: "user", content: tc.seed.userPrompt },
