@@ -1,8 +1,12 @@
-import {generateText,streamText,stepCountIs,type LanguageModel,type ModelMessage} from "ai";
+import {
+  generateText,
+  streamText,
+  stepCountIs,
+  type LanguageModel,
+  type ModelMessage,
+} from "ai";
 import { tools } from "./tools";
 import { serializeCanvasState } from "./contex/canvas-state";
-
-
 
 interface AgentArgs {
   model: LanguageModel;
@@ -40,14 +44,20 @@ Call generateDiagram with one new rectangle rect_cache plus arrows... Do not red
 // Streaming variant. Used by the worker for the live chat experience.
 
 // add canvas state to system prompt to give agent context
-function buildSystem(base: string, canvasState: unknown[] | undefined): string {
+function buildSystem(base: string, canvasState: any[] | undefined): string {
   return `${base}\n\n# Current canvas state\n\n${serializeCanvasState(canvasState ?? [])}`;
 }
 
-export function streamAgent({ model, messages, canvasState, system = SYSTEM_PROMPT, maxSteps = 5 }: AgentArgs) {
+export function streamAgent({
+  model,
+  messages,
+  canvasState,
+  system = SYSTEM_PROMPT,
+  maxSteps = 5,
+}: AgentArgs) {
   return streamText({
     model,
-    system: buildSystem(system, canvasState),
+    system: buildSystem(system, canvasState),// serialised context with system prompt
     messages,
     tools,
     stopWhen: stepCountIs(maxSteps),
@@ -56,9 +66,24 @@ export function streamAgent({ model, messages, canvasState, system = SYSTEM_PROM
 
 // Non streaming variant. Used by the eval so we can collect the full result
 // and pull out elements for scoring.
-export async function runAgent({ model, messages, system = SYSTEM_PROMPT, maxSteps = 5 }: AgentArgs) {
-  const result = await generateText({ model, system, messages, tools, stopWhen: stepCountIs(maxSteps) });
-  return { text: result.text, elements: extractElements(result.steps), steps: result.steps };
+export async function runAgent({
+  model,
+  messages,
+  system = SYSTEM_PROMPT,
+  maxSteps = 5,
+}: AgentArgs) {
+  const result = await generateText({
+    model,
+    system,
+    messages,
+    tools,
+    stopWhen: stepCountIs(maxSteps),
+  });
+  return {
+    text: result.text,
+    elements: extractElements(result.steps),
+    steps: result.steps,
+  };
 }
 
 interface StepLike {
