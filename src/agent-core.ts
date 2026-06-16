@@ -1,12 +1,13 @@
 import {generateText,streamText,stepCountIs,type LanguageModel,type ModelMessage} from "ai";
 import { tools } from "./tools";
-
+import { serializeCanvasState } from "./contex/canvas-state";
 
 
 
 interface AgentArgs {
   model: LanguageModel;
   messages: ModelMessage[];
+  canvasState?: unknown[];
   system?: string;
   maxSteps?: number;
 }
@@ -38,9 +39,19 @@ User: "add a Cache box between them and route the API through the cache."
 Call generateDiagram with one new rectangle rect_cache plus arrows... Do not redraw rect_api or rect_db — they already exist.`;
 // Streaming variant. Used by the worker for the live chat experience.
 
+// add canvas state to system prompt to give agent context
+function buildSystem(base: string, canvasState: unknown[] | undefined): string {
+  return `${base}\n\n# Current canvas state\n\n${serializeCanvasState(canvasState ?? [])}`;
+}
 
-export function streamAgent({ model, messages, system = SYSTEM_PROMPT, maxSteps = 5 }: AgentArgs) {
-  return streamText({ model, system, messages, tools, stopWhen: stepCountIs(maxSteps) });
+export function streamAgent({ model, messages, canvasState, system = SYSTEM_PROMPT, maxSteps = 5 }: AgentArgs) {
+  return streamText({
+    model,
+    system: buildSystem(system, canvasState),
+    messages,
+    tools,
+    stopWhen: stepCountIs(maxSteps),
+  });
 }
 
 // Non streaming variant. Used by the eval so we can collect the full result
