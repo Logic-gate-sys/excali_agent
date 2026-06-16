@@ -1,46 +1,39 @@
 import { AIChatAgent } from "@cloudflare/ai-chat";
-import {
-  streamText,
-  convertToModelMessages,
-  stepCountIs,
-} from "ai";
+import { convertToModelMessages } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { tools } from "./tools";
+import { streamAgent } from "./agent-core";
+import { ExcalidrawElement } from "./schemas";
+import { UIMessage } from "ai";
+
+type CanvasStatePart = {
+  type: "data-canvas-state";
+  data: { elements: ExcalidrawElement[] };
+};
 
 interface Env extends Cloudflare.Env {
   GOOGLE_GENERATIVE_AI_API_KEY: string;
 }
 
-const SYSTEM_PROMPT = `You are a diagram design assistant. You help users create and modify diagrams on an Excalidraw canvas.
-
-When the user asks you to create a diagram, use the generateDiagram tool to produce Excalidraw elements.
-
-Guidelines for generating diagrams:
-- Give each element a unique id (e.g. "rect-1", "text-1", "arrow-1")
-- Position elements with reasonable spacing (at least 20px gap between elements)
-- Use rectangles for boxes/containers, ellipses for circles, diamonds for decision points
-- Add text labels inside or near shapes
-- Connect related elements with arrows
-- Use a clean layout: left to right or top to bottom
-- Default to strokeColor "#1e1e1e" and backgroundColor "transparent"
-- Set roughness to 1 for a hand-drawn look
-
-When the user asks to modify an element, use the modifyDiagram tool with the element's id.`;
+function extractCanvasState(messages: UIMessage[]): ExcalidrawElement[] {
+  const last = messages.at(-1);
+  const part = last?.parts.find(
+    (p): p is CanvasStatePart => p.type === "data-canvas-state",
+  );
+  return part?.data.elements ?? [];
+}
 
 export class DesignAgent extends AIChatAgent<Env> {
   async onChatMessage() {
-    const google = createGoogleGenerativeAI({ apiKey: this.env.GOOGLE_GENERATIVE_AI_API_KEY });
-
-    const result = streamText({
-      model: google("gemini-3.5-flash"),
-      system: SYSTEM_PROMPT,
-      messages: await convertToModelMessages(this.messages),
-      tools,// available tools to agent
-      stopWhen: stepCountIs(5),// do a maximum of 5 loops only
+    // create model
+    const google = createGoogleGenerativeAI({
+      apiKey: this.env.GOOGLE_GENERATIVE_AI_API_KEY,
     });
+    const model = google("gemini-3-flash-preview");
+    const canvasState = extractCanvasState(this.messages);
+    const messages = await convertToModelMessages(this.messages);
+    const result = streamAgent({ model, messages, canvasState });
 
+    // return streamed messages
     return result.toUIMessageStreamResponse();
   }
 }
-
-
