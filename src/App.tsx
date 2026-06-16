@@ -25,14 +25,15 @@ export default function App() {
 
   // Connect to a fresh agent instance for this page load
   const agent = useAgent({ agent: "design-agent", name: sessionId });
-  const { messages, sendMessage, status } = useAgentChat({ agent });
+    const { messages, sendMessage, status } = useAgentChat({ agent });
+    
   const sendWithCanvas = useMemo(() => (msg: { role: "user"; parts: { type: "text"; text: string }[] }) => {
       const elements = excalidrawAPI?.getSceneElements() ?? [];
       sendMessage({
         ...msg,
         parts: [
           ...msg.parts,
-          { type: "data-canvas-state", data: { elements } } as never,
+          { type: "data-canvas-state", data: { elements } },
         ],
       });
     },
@@ -97,7 +98,7 @@ export default function App() {
       </div>
       <ChatPanel
         messages={messages}
-        sendMessage={sendMessage}
+        sendMessage={sendWithCanvas}
         status={status}
       />
     </div>
